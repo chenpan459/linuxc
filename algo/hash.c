@@ -12,7 +12,7 @@
      struct __node *next;
  }NODE, *PNODE, **PPNODE;
  
-/// hash表结构
+ // hash表结构
  typedef struct __hash_table{
      PPNODE table;
      unsigned total; // 总空间
