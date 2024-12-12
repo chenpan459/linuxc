@@ -1,0 +1,45 @@
+#在 Makefile 中，可以使用 wildcard 函数来查找所有的 .c 文件，并使用 patsubst 函数生成对应的 .o 文件列表。
+#然后，可以使用 filter-out 函数从中去掉一个特定的 .o 文件，并单独编译这个文件。以下是一个示例，展示如何实现这一功能。
+
+# 定义编译器
+CC = gcc
+
+# 定义编译选项
+CFLAGS = -Wall
+
+# 查找所有的 .c 文件
+SRC_FILES = $(wildcard *.c)
+
+# 生成对应的 .o 文件
+OBJ_FILES = $(patsubst %.c, %.o, $(SRC_FILES))
+
+# 从中排除 exclude.o 文件
+OBJ_FILES := $(filter-out exclude.o, $(OBJ_FILES))
+
+# 打印 OBJ_FILES 变量的值
+$(info OBJ_FILES: $(OBJ_FILES))
+
+# 定义目标文件
+TARGET = my_program
+
+# 默认目标
+all: $(TARGET) exclude.o
+
+# 链接目标文件
+$(TARGET): $(OBJ_FILES)
+    $(CC) $(CFLAGS) -o $@ $^
+
+# 编译 .c 文件为 .o 文件
+%.o: %.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+# 单独编译 exclude.c
+exclude.o: exclude.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+# 清理生成的文件
+clean:
+    rm -f $(OBJ_FILES) exclude.o $(TARGET)
+
+# 防止 make 执行时自动补全文件名
+.PHONY: all clean
