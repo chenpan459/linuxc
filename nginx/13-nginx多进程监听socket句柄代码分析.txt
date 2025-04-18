@@ -50,9 +50,45 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 }
 
 5、监听socket句柄监听事件
+
+
+
+typedef struct {
+#if (NGX_HAVE_ATOMIC_OPS) //  如果定义了NGX_HAVE_ATOMIC_OPS，表示系统支持原子操作
+    ngx_atomic_t  *lock; //  指向原子锁的指针
+#if (NGX_HAVE_POSIX_SEM) //  如果定义了NGX_HAVE_POSIX_SEM，表示系统支持POSIX信号量
+    ngx_atomic_t  *wait; //  指向等待计数器的指针，用于记录等待锁的线程数
+    ngx_uint_t     semaphore; //  信号量值，用于控制访问资源的线程数
+    sem_t          sem; //  POSIX信号量对象
+#endif
+#else
+    ngx_fd_t       fd; //  如果系统不支持原子操作，使用文件描述符作为锁
+    u_char        *name; //  锁的名称，通常用于标识锁
+#endif
+    ngx_uint_t     spin; //  自旋次数，用于自旋锁的实现
+} ngx_shmtx_t;
+
+
+
+  检查互斥锁的当前状态     如果锁的值为0，表示锁未被占用     使用原子操作尝试将锁的值从0设置为当前进程ID (ngx_pid)  
+  如果设置成功，表示成功获取锁，返回true     如果设置失败，表示锁已被其他进程占用，返回false
+ngx_uint_t  ngx_shmtx_trylock(ngx_shmtx_t *mtx)
+{
+    return (*mtx->lock == 0 && ngx_atomic_cmp_set(mtx->lock, 0, ngx_pid)); 
+    
+}
+
+
+ngx_int_t   ngx_trylock_accept_mutex(ngx_cycle_t *cycle)
+{
+    if (ngx_shmtx_trylock(&ngx_accept_mutex)) {//  尝试获取锁;
+    }
+
+    return NGX_OK;
+}
+
 nginx-1.24.0\src\event\ngx_event.c
-void
-ngx_process_events_and_timers(ngx_cycle_t *cycle)
+void ngx_process_events_and_timers(ngx_cycle_t *cycle)
 {
     if (ngx_trylock_accept_mutex(cycle) == NGX_ERROR) {
                 return;
