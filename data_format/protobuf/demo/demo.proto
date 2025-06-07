@@ -1,6 +1,0 @@
-syntax = "proto3";
-
-package demo;
-message Any {
-  string type_url = 1;
-}
